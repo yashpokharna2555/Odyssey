@@ -1,20 +1,15 @@
-import { useState } from 'react'
-import './App.css'
 import NavBar from "./components/NavBar";
+import OdysseyLanding from "./components/OdysseyLanding";
 
-function App() {
+export default function App() {
   return (
-    <div className="relative min-h-screen bg-black">
+    <div className="min-h-screen bg-black text-white">
+      {/* Fixed, on top */}
       <NavBar />
-
-      {/* Centered Odyssey text on the left side */}
-      <div className="pl-40 absolute inset-0 flex items-center">
-        <h1 className="font-vogue text-[10rem] tracking-tight text-white">
-          Odyssey
-        </h1>
-      </div>
+      {/* Offset the content so it doesn't sit under the fixed navbar */}
+      <main className="pt-16"> 
+        <OdysseyLanding />
+      </main>
     </div>
-  )
+  );
 }
-
-export default App
