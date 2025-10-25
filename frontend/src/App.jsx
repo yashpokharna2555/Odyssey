@@ -1,24 +1,21 @@
-import HomeButtons from "./components/HomeButtons";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import NavBar from "./components/NavBar";
+import OdysseyLanding from "./components/OdysseyLanding";
+import SignIn from "./components/Signin";
 
-function Home() {
+export default function App() {
   return (
-    <div className="pl-40 absolute inset-0 flex items-center">
-      <h1 className="font-vogue text-[10rem] tracking-tight text-white">
-        Odyssey
-      </h1>
-    </div>
+    <Router>
+      {/* 🌍 Navbar sits outside all route content */}
+      <NavBar />
+
+      {/* Page container (below navbar) */}
+      <div className="relative min-h-screen bg-black text-white">
+        <Routes>
+          <Route path="/" element={<OdysseyLanding />} />
+          <Route path="/login" element={<SignIn />} />
+        </Routes>
+      </div>
+    </Router>
   );
 }
-
-function App() {
-  return (
-    <div className="relative min-h-screen bg-black">
-      {/* <NavBar />
-      <Home /> */}
-      <HomeButtons />
-    </div>
-  );
-}
-
-export default App;

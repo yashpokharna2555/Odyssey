@@ -56,7 +56,7 @@ const AlternatingSweepBox = ({ delay = 0 }) => {
 
   return (
     <div
-      className="relative w-[200px] h-[200px] overflow-hidden bg-black border-2 border-white rounded-lg shadow-lg"
+      className="relative w-[120px] h-[120px] overflow-hidden bg-black border-2 border-white rounded-lg shadow-lg"
       style={{
         backgroundImage: `url(${image})`,
         backgroundSize: "cover",

@@ -13,7 +13,6 @@ const Signin = () => {
         backgroundImage: `url(${Beach})`,
       }}
     >
-      <NavBar />
       {/* Frosted Glass Auth Box */}
       <div className="relative z-10 w-[65%] max-w-md p-10 rounded-[2rem] bg-white/10 border border-white/30 backdrop-blur-lg shadow-2xl">
         {/* Tabs */}

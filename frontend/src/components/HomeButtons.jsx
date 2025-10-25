@@ -1,6 +1,6 @@
 import React from "react";
 import { motion as Motion } from "motion/react";
-import Arrow from "../assets/arrow.svg"; // your arrow svg path
+import Arrow from "../assets/arrow.svg"; 
 
 const HomeButtons = () => {
   return (
@@ -16,7 +16,7 @@ const HomeButtons = () => {
 // Reusable button with arrow motion
 const Button = ({ text }) => {
   return (
-    <button className="relative flex items-center justify-center gap-3 w-[150px] h-[50px] bg-black text-white rounded-full border-2 border-white hover:bg-white hover:text-black transition-all duration-300 overflow-hidden group">
+    <button className="relative flex items-center justify-center gap-3 w-[150px] h-[50px] bg-black text-white rounded-lg border-2 border-white hover:bg-white hover:text-black transition-all duration-300 overflow-hidden group">
       <span className="text-sm font-medium tracking-wide">{text}</span>
 
       {/* Animated arrow */}
