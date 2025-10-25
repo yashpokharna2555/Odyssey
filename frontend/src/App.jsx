@@ -1,15 +1,19 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
+import NavBar from "./components/NavBar";
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      
-    </>
+    <div className="relative min-h-screen bg-black">
+      <NavBar />
+
+      {/* Centered Odyssey text on the left side */}
+      <div className="pl-40 absolute inset-0 flex items-center">
+        <h1 className="font-vogue text-[10rem] tracking-tight text-white">
+          Odyssey
+        </h1>
+      </div>
+    </div>
   )
 }
 

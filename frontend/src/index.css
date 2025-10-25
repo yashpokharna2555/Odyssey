@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+@font-face {
+    font-family: 'Vogue';
+    src: url('./assets/Vogue.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+  }
