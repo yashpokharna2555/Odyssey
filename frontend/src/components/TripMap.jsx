@@ -6,16 +6,18 @@ const AWS_REGION = "us-east-2";
 const MAP_STYLE = "Standard";
 const API_KEY = import.meta.env.VITE_AWS_MAPS_API_KEY;
 
-export default function TripMap({ places = [] }) {
-  const containerRef = useRef(null);
+export default function TripMap({ places = [], className = "" }) {
+  const mapShellRef = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
 
-  // 🗺️ Initialize map once
+  // init
   useEffect(() => {
+    if (!mapShellRef.current) return;
+
     const styleUrl = `https://maps.geo.${AWS_REGION}.amazonaws.com/v2/styles/${MAP_STYLE}/descriptor?key=${API_KEY}`;
     const map = new maplibregl.Map({
-      container: containerRef.current,
+      container: mapShellRef.current,
       style: styleUrl,
       center: [-122.009, 37.3349],
       zoom: 3,
@@ -24,7 +26,6 @@ export default function TripMap({ places = [] }) {
     map.addControl(new maplibregl.NavigationControl(), "top-right");
     mapRef.current = map;
 
-    // 🧭 Add user location marker
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -40,104 +41,83 @@ export default function TripMap({ places = [] }) {
       );
     }
 
-    const resize = () => map.resize();
-    window.addEventListener("resize", resize);
-
+    const onResize = () => map.resize();
+    window.addEventListener("resize", onResize);
     return () => {
-      window.removeEventListener("resize", resize);
+      window.removeEventListener("resize", onResize);
       map.remove();
     };
   }, []);
 
-  // 📍 Add markers whenever places update
+  // markers
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    // Remove old markers
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
-    places.forEach((place, i) => {
-      if (!place.coordinates || place.coordinates.length !== 2) return;
-      const [lon, lat] = place.coordinates;
-      if (isNaN(lon) || isNaN(lat)) return;
+    places.forEach((p, i) => {
+      const coords = p.coordinates;
+      if (!Array.isArray(coords) || coords.length !== 2) return;
+      const [lon, lat] = coords;
+      if (Number.isNaN(lon) || Number.isNaN(lat)) return;
 
-      const marker = new maplibregl.Marker({ color: "#FF4500" })
+      const marker = new maplibregl.Marker({ color: i === 0 ? "#00BFFF" : "#FF4500" })
         .setLngLat([lon, lat])
-        .setPopup(
-          new maplibregl.Popup().setHTML(
-            `<b>${place.title}</b><br/>${place.address || ""}`
-          )
-        )
+        .setPopup(new maplibregl.Popup().setHTML(`<b>${p.title}</b><br/>${p.address || ""}`))
         .addTo(map);
 
       markersRef.current.push(marker);
 
-      // Fly to last added
       if (i === places.length - 1) {
         map.flyTo({ center: [lon, lat], zoom: 10, speed: 0.8, curve: 1.3 });
       }
     });
   }, [places]);
 
-  // 🛣️ Draw a connecting route
+  // line
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || places.length < 2) return;
+    if (!map) return;
 
     const coords = places
-      .filter((p) => Array.isArray(p.coordinates) && p.coordinates.length === 2)
-      .map((p) => p.coordinates);
+      .map((p) => p.coordinates)
+      .filter((c) => Array.isArray(c) && c.length === 2);
 
-    if (coords.length < 2) return;
-
-    console.log("🧭 Drawing route with coords:", coords);
-
-    // Wait for map to be ready before adding sources/layers
-    map.once("load", () => {
-      // Remove old route if exists
+    const draw = () => {
       if (map.getLayer("trip-route")) map.removeLayer("trip-route");
       if (map.getSource("trip-route")) map.removeSource("trip-route");
 
-      const geojson = {
-        type: "Feature",
-        geometry: { type: "LineString", coordinates: coords },
-      };
+      if (coords.length < 2) return;
 
       map.addSource("trip-route", {
         type: "geojson",
-        data: geojson,
+        data: { type: "Feature", geometry: { type: "LineString", coordinates: coords } },
       });
-
       map.addLayer({
         id: "trip-route",
         type: "line",
         source: "trip-route",
         layout: { "line-join": "round", "line-cap": "round" },
-        paint: {
-          "line-color": "#00FFFF",
-          "line-width": 6,
-          "line-opacity": 0.9,
-          "line-blur": 0.3,
-        },
+        paint: { "line-color": "#00FFFF", "line-width": 6, "line-opacity": 0.9, "line-blur": 0.3 },
       });
 
-      // Fit bounds to route
       const bounds = coords.reduce(
         (b, c) => b.extend(c),
         new maplibregl.LngLatBounds(coords[0], coords[0])
       );
       map.fitBounds(bounds, { padding: 60, duration: 1000 });
-    });
+    };
+
+    if (map.loaded()) draw();
+    else map.once("load", draw);
   }, [places]);
 
+  // Not absolute anymore — the page controls the size/placement.
   return (
-    <div className="bg-black flex justify-center items-center p-6">
-      <div
-        ref={containerRef}
-        className="h-[70vh] w-[60vw] rounded-xl overflow-hidden shadow-lg border border-white/20"
-      />
+    <div className={`mt-20 rounded-xl overflow-hidden ${className}`}>
+      <div ref={mapShellRef} className="h-full w-full" />
     </div>
   );
 }
