@@ -33,8 +33,8 @@ export default function NavBar() {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 pointer-events-none">
-      <div className="mx-auto max-w-[1400px] flex items-center justify-between px-6 py-2 pointer-events-auto">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-black pointer-events-auto">
+      <div className="mx-auto max-w-[1400px] flex items-center justify-between px-6 py-2">
         <Link to="/" className="text-white no-underline">
           <button aria-label="Menu" className="grid gap-3 p-2 text-white">
             <span className="block w-15 h-px bg-current"></span>
