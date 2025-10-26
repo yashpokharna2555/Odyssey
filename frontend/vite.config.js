@@ -11,6 +11,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
+      '/places': {
+        target: 'https://places.geo.us-east-2.api.aws',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/places/, ''),
+      },
     },
   },
 })

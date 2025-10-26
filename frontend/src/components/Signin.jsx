@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { motion as Motion, AnimatePresence } from "motion/react";
 import { useNavigate } from "react-router-dom";
 import Beach from "../assets/Beach.jpg";
-import NavBar from "./NavBar";
 
 const Signin = () => {
   const [activeTab, setActiveTab] = useState("signin");
@@ -17,134 +16,88 @@ const Signin = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [signupLoading, setSignupLoading] = useState(false);
   const [signupError, setSignupError] = useState("");
-  
+
   const navigate = useNavigate();
 
+  // ---- SIGN IN ----
   const handleSignin = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      const response = await fetch(
-        "/api/prod/auth/login",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email,
-            password,
-          }),
-        }
-      );
+      const response = await fetch("/api/prod/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
       if (!response.ok) {
-        // Handle error response
         let errorMessage = "Invalid credentials";
         try {
           const errorData = await response.json();
           errorMessage = errorData.message || errorMessage;
-        } catch (e) {
-          // If response is not JSON, use default message
-        }
+        } catch {e}
         setError(errorMessage);
         return;
       }
 
       const data = await response.json();
-
-      // Check for access token in various possible field names
       const token = data.access_token || data.accessToken || data.token;
-      
+
       if (token) {
-        // Store access token in session storage
         sessionStorage.setItem("access_token", token);
-        // Notify navbar about login status change
         window.dispatchEvent(new Event("authStatusChange"));
-        // Redirect to home
         navigate("/");
-      } else {
-        setError("Invalid response from server");
-      }
-    } catch (err) {
+      } else setError("Invalid response from server");
+    } catch {
       setError("Network error. Please try again.");
-      console.error("Signin error:", err);
     } finally {
       setLoading(false);
     }
   };
 
+  // ---- SIGN UP ----
   const handleSignup = async (e) => {
     e.preventDefault();
     setSignupError("");
-    
-    // Validate passwords match
+
     if (signupPassword !== confirmPassword) {
       setSignupError("Passwords do not match");
       return;
     }
 
-    // Validate password length
     if (signupPassword.length < 6) {
       setSignupError("Password must be at least 6 characters");
       return;
     }
 
     setSignupLoading(true);
-
     try {
-      const requestBody = {
-        email: signupEmail,
-        password: signupPassword,
-      };
-
-      console.log("Signup request:", requestBody);
-
-      const response = await fetch(
-        "/api/prod/auth/signup",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestBody),
-        }
-      );
-
-      console.log("Signup response status:", response.status);
+      const response = await fetch("/api/prod/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: signupEmail, password: signupPassword }),
+      });
 
       if (!response.ok) {
-        // Handle error response
         let errorMessage = "Signup failed";
         try {
           const errorData = await response.json();
           errorMessage = errorData.message || errorData.error || errorMessage;
-          console.error("Signup error:", errorData);
-        } catch (e) {
-          // If response is not JSON, use default message
-          console.error("Signup response not JSON");
-        }
+        } catch {e}
         setSignupError(errorMessage);
         return;
       }
 
-      const data = await response.json();
-
-      // If successful, switch to signin tab and clear signup form
-      if (data.message || response.ok) {
-        setSignupError("");
-        setSignupEmail("");
-        setSignupPassword("");
-        setConfirmPassword("");
-        setActiveTab("signin");
-        // Show success message temporarily
-        setError("Signup successful! Please sign in.");
-      }
-    } catch (err) {
+      setSignupError("");
+      setSignupEmail("");
+      setSignupPassword("");
+      setConfirmPassword("");
+      setActiveTab("signin");
+      setError("Signup successful! Please sign in.");
+    } catch {
       setSignupError("Network error. Please try again.");
-      console.error("Signup error:", err);
     } finally {
       setSignupLoading(false);
     }
@@ -152,13 +105,17 @@ const Signin = () => {
 
   return (
     <div
-      className="w-screen h-screen bg-cover bg-center flex items-center justify-center"
+      className="relative w-screen h-screen bg-cover bg-center flex items-center justify-center overflow-hidden"
       style={{
         backgroundImage: `url(${Beach})`,
       }}
     >
-      {/* Frosted Glass Auth Box */}
-      <div className="relative z-10 w-[65%] max-w-md p-10 rounded-[2rem] bg-white/10 border border-white/30 backdrop-blur-lg shadow-2xl">
+      {/* 🔹 Cinematic Overlay + Gradient */}
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-[1.5px]"></div>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20"></div>
+
+      {/* 🔹 Auth Box */}
+      <div className="relative z-10 w-[90%] max-w-md p-10 rounded-[2rem] bg-white/10 border border-white/30 backdrop-blur-lg shadow-2xl">
         {/* Tabs */}
         <div className="flex justify-center gap-10 mb-8 text-white uppercase text-sm tracking-wider">
           <button
@@ -191,7 +148,7 @@ const Signin = () => {
           </button>
         </div>
 
-        {/* Animated Forms */}
+        {/* Forms */}
         <div className="relative min-h-[230px]">
           <AnimatePresence mode="wait">
             {activeTab === "signin" ? (
@@ -221,9 +178,7 @@ const Signin = () => {
                   className="w-full p-3 bg-white/10 border border-white/30 rounded-full text-white placeholder-white/70 focus:outline-none focus:border-white focus:bg-white/20 transition-all"
                 />
                 {error && (
-                  <p className="text-red-400 text-sm text-center mt-2">
-                    {error}
-                  </p>
+                  <p className="text-red-400 text-sm text-center mt-2">{error}</p>
                 )}
                 <Motion.button
                   type="submit"

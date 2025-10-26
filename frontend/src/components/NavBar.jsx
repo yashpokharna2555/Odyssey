@@ -58,8 +58,8 @@ export default function NavBar() {
               Login
             </Link>
           )}
-          <span>Trip</span>
-          <span>About</span>
+          <Link to="/trip" className="text-white no-underline hover:text-gray-300 transition-colors">Trip</Link>
+          <Link to="/about" className="text-white no-underline hover:text-gray-300 transition-colors">About</Link>
           <span>Help</span>
         </nav>
       </div>
