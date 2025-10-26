@@ -3,25 +3,29 @@ import React, { useState, useEffect } from "react";
 const AWS_REGION = "us-east-2";
 const API_KEY = import.meta.env.VITE_AWS_MAPS_API_KEY;
 
-export default function TripPlanner({ places = [], onAddPlace, onRemovePlace }) {
+export default function TripPlanner({
+  places = [],
+  onAddPlace = () => {},
+  onRemovePlace = () => {},
+}) {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // 🧭 Get user location once
+  // Get user location once
   useEffect(() => {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => setUserLocation([pos.coords.longitude, pos.coords.latitude]),
-        () => setUserLocation([-122.009, 37.3349]) // fallback Cupertino
+        () => setUserLocation([-122.009, 37.3349]) // Cupertino fallback
       );
     } else {
       setUserLocation([-122.009, 37.3349]);
     }
   }, []);
 
-  // 🔍 Fetch suggestions (using your /search-text response shape)
+  // Fetch suggestions
   const fetchSuggestions = async (text) => {
     if (text.trim().length < 3 || !userLocation) {
       setSuggestions([]);
@@ -41,8 +45,6 @@ export default function TripPlanner({ places = [], onAddPlace, onRemovePlace }) 
       });
 
       const data = await res.json();
-      console.log("✅ AWS suggestions returned:", data);
-
 
       const results =
         data.ResultItems?.map((r) => ({
@@ -52,7 +54,6 @@ export default function TripPlanner({ places = [], onAddPlace, onRemovePlace }) 
           coordinates: r.Position, // [lon, lat]
         })) || [];
 
-      console.log("Parsed suggestions:", results);
       setSuggestions(results);
     } catch (err) {
       console.error("Suggest API error:", err);
@@ -62,37 +63,25 @@ export default function TripPlanner({ places = [], onAddPlace, onRemovePlace }) 
     }
   };
 
-  // 📍 Add selected suggestion to parent 'places'
-  const handleSelect = async (place) => {
+  // Add selected suggestion to parent
+  const handleSelect = (place) => {
     setQuery("");
     setSuggestions([]);
     onAddPlace({
       title: place.title,
-      coordinates: place.coordinates,
+      coordinates: place.coordinates, // [lon, lat]
       address: place.address,
       placeId: place.placeId,
     });
   };
 
-      // Add to trip list and map
-      setTripList((prev) => [...prev, selected]);
-      onAddPlace(selected);
-
-      console.log("Added place:", selected);
-    } catch (err) {
-      console.error("Handle select error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleRemove = (index) => {
-    onRemovePlace?.(index);
+    onRemovePlace(index);
   };
 
   return (
-    <div className="w-[70%] max-w-2xl ml-15 mt-25 text-white relative z-[9999] space-y-8">
-
+    <div className="w-[70%] max-w-2xl ml-[60px] mt-[100px] text-white relative z-[9999] space-y-8">
+      {/* Search */}
       <div className="relative">
         <input
           type="text"
@@ -103,19 +92,9 @@ export default function TripPlanner({ places = [], onAddPlace, onRemovePlace }) 
             setQuery(value);
             fetchSuggestions(value);
           }}
-          className="
-      w-full
-      bg-transparent
-      text-white
-      placeholder-white/60
-      border-0
-      border-b
-      border-white/40
-      focus:border-white
-      focus:outline-none
-      focus:ring-0
-      pb-3
-    "
+          className="w-full bg-transparent text-white placeholder-white/60
+                     border-0 border-b border-white/40 pb-3
+                     focus:border-white focus:outline-none focus:ring-0"
         />
 
         {loading && (
@@ -126,15 +105,9 @@ export default function TripPlanner({ places = [], onAddPlace, onRemovePlace }) 
 
         {suggestions.length > 0 && (
           <ul
-            className="
-        absolute left-0 right-0
-        mt-3
-        bg-black/90 text-white
-        border border-white/30
-        rounded-xl shadow-2xl backdrop-blur-xl
-        overflow-hidden z-[99999]
-        animate-fadeIn
-      "
+            className="absolute left-0 right-0 mt-3 bg-black/90 text-white
+                       border border-white/30 rounded-xl shadow-2xl backdrop-blur-xl
+                       overflow-hidden z-[99999] animate-fadeIn"
           >
             {suggestions.map((s, i) => (
               <li
@@ -151,7 +124,6 @@ export default function TripPlanner({ places = [], onAddPlace, onRemovePlace }) 
           </ul>
         )}
       </div>
-
 
       {/* Trip Plan List */}
       <div className="bg-black border border-white/30 rounded-xl p-4 backdrop-blur-md shadow-md">
@@ -175,6 +147,8 @@ export default function TripPlanner({ places = [], onAddPlace, onRemovePlace }) 
                 <button
                   onClick={() => handleRemove(index)}
                   className="text-red-400 hover:text-red-300 text-sm font-medium"
+                  aria-label={`Remove ${place.title}`}
+                  title="Remove"
                 >
                   ❌
                 </button>
