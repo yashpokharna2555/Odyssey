@@ -16,6 +16,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/places/, ''),
       },
+      '/serpapi': {
+        target: 'https://serpapi.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/serpapi/, ''),
+      },
     },
   },
 })
