@@ -13,7 +13,7 @@ dist-ssr
 *.local
 
 .env
-aws.config.js
+/src/aws.config.js
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -24,5 +24,4 @@ aws.config.js
 *.njsproj
 *.sln
 *.sw?
-frontend/src/aws.config.js
-.env
+
