@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { motion as Motion, AnimatePresence } from "motion/react";
 import { useNavigate } from "react-router-dom";
-import Beach from "../assets/Beach.jpg";
 
 const Signin = () => {
   const [activeTab, setActiveTab] = useState("signin");
@@ -105,17 +104,14 @@ const Signin = () => {
 
   return (
     <div
-      className="relative w-screen h-screen bg-cover bg-center flex items-center justify-center overflow-hidden"
-      style={{
-        backgroundImage: `url(${Beach})`,
-      }}
+      className="relative w-screen h-screen bg-black flex items-center justify-center overflow-hidden"
     >
-      {/* 🔹 Cinematic Overlay + Gradient */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-[1.5px]"></div>
-      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20"></div>
+      {/* ✨ Overlay + Twinkling stars effect */}
+      <div className="absolute inset-0 bg-black/60"></div>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/30"></div>
 
       {/* 🔹 Auth Box */}
-      <div className="relative z-10 w-[90%] max-w-md p-10 rounded-[2rem] bg-white/10 border border-white/30 backdrop-blur-lg shadow-2xl">
+      <div className="relative z-10 w-[90%] max-w-md p-10 rounded-[2rem] bg-transparent border border-white backdrop-blur-xl shadow-2xl">
         {/* Tabs */}
         <div className="flex justify-center gap-10 mb-8 text-white uppercase text-sm tracking-wider">
           <button
@@ -167,7 +163,7 @@ const Signin = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full p-3 bg-white/10 border border-white/30 rounded-full text-white placeholder-white/70 focus:outline-none focus:border-white focus:bg-white/20 transition-all"
+                  className="w-full p-3 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/70 focus:outline-none focus:border-white focus:bg-white/20 transition-all"
                 />
                 <input
                   type="password"
@@ -175,7 +171,7 @@ const Signin = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full p-3 bg-white/10 border border-white/30 rounded-full text-white placeholder-white/70 focus:outline-none focus:border-white focus:bg-white/20 transition-all"
+                  className="w-full p-3 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/70 focus:outline-none focus:border-white focus:bg-white/20 transition-all"
                 />
                 {error && (
                   <p className="text-red-400 text-sm text-center mt-2">{error}</p>
@@ -187,11 +183,9 @@ const Signin = () => {
                     backgroundColor: "#000",
                     color: "#fff",
                     scale: 1.03,
-                    borderColor: "#000",
-                    borderWidth: 2,
                   }}
                   transition={{ duration: 0.25 }}
-                  className="w-full mt-2 py-3 bg-white text-black rounded-full font-medium tracking-wide border border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full mt-2 py-3 bg-white text-black rounded-lg font-medium tracking-wide border border-white/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? "Signing In..." : "Sign In"}
                 </Motion.button>
@@ -212,7 +206,7 @@ const Signin = () => {
                   value={signupEmail}
                   onChange={(e) => setSignupEmail(e.target.value)}
                   required
-                  className="w-full p-3 bg-white/10 border border-white/30 rounded-full text-white placeholder-white/70 focus:outline-none focus:border-white focus:bg-white/20 transition-all"
+                  className="w-full p-3 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/70 focus:outline-none focus:border-white focus:bg-white/20 transition-all"
                 />
                 <input
                   type="password"
@@ -220,7 +214,7 @@ const Signin = () => {
                   value={signupPassword}
                   onChange={(e) => setSignupPassword(e.target.value)}
                   required
-                  className="w-full p-3 bg-white/10 border border-white/30 rounded-full text-white placeholder-white/70 focus:outline-none focus:border-white focus:bg-white/20 transition-all"
+                  className="w-full p-3 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/70 focus:outline-none focus:border-white focus:bg-white/20 transition-all"
                 />
                 <input
                   type="password"
@@ -228,7 +222,7 @@ const Signin = () => {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
-                  className="w-full p-3 bg-white/10 border border-white/30 rounded-full text-white placeholder-white/70 focus:outline-none focus:border-white focus:bg-white/20 transition-all"
+                  className="w-full p-3 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/70 focus:outline-none focus:border-white focus:bg-white/20 transition-all"
                 />
                 {signupError && (
                   <p className="text-red-400 text-sm text-center mt-2">
@@ -242,11 +236,9 @@ const Signin = () => {
                     backgroundColor: "#000",
                     color: "#fff",
                     scale: 1.03,
-                    borderColor: "#000",
-                    borderWidth: 2,
                   }}
                   transition={{ duration: 0.25 }}
-                  className="w-full mt-2 py-3 bg-white text-black rounded-full font-medium tracking-wide border border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full mt-2 py-3 bg-white text-black rounded-lg font-medium tracking-wide border border-white/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {signupLoading ? "Signing Up..." : "Sign Up"}
                 </Motion.button>
