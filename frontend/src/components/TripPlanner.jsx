@@ -10,10 +10,11 @@ export default function TripPlanner({
 }) {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
+  const [recommendations, setRecommendations] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Get user location once
+  // 🧭 Get user location once
   useEffect(() => {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
@@ -25,7 +26,7 @@ export default function TripPlanner({
     }
   }, []);
 
-  // Fetch suggestions
+  // 🔍 Fetch nearby place suggestions
   const fetchSuggestions = async (text) => {
     if (text.trim().length < 3 || !userLocation) {
       setSuggestions([]);
@@ -43,7 +44,6 @@ export default function TripPlanner({
           MaxResults: 5,
         }),
       });
-
       const data = await res.json();
 
       const results =
@@ -51,7 +51,7 @@ export default function TripPlanner({
           title: r.Title,
           placeId: r.PlaceId,
           address: r.Address?.Label || "",
-          coordinates: r.Position, // [lon, lat]
+          coordinates: r.Position,
         })) || [];
 
       setSuggestions(results);
@@ -63,13 +63,41 @@ export default function TripPlanner({
     }
   };
 
-  // Add selected suggestion to parent
+  // ✨ Fetch recommended events or nearby attractions
+  useEffect(() => {
+    if (!userLocation) return;
+    const fetchRecommendations = async () => {
+      try {
+        const res = await fetch(`/places/v2/search-text?key=${API_KEY}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            QueryText: "tourist attractions",
+            BiasPosition: userLocation,
+            MaxResults: 6,
+          }),
+        });
+        const data = await res.json();
+        const recs =
+          data.ResultItems?.map((r) => ({
+            title: r.Title,
+            address: r.Address?.Label || "",
+            placeId: r.PlaceId,
+          })) || [];
+        setRecommendations(recs);
+      } catch (err) {
+        console.error("Recommendations error:", err);
+      }
+    };
+    fetchRecommendations();
+  }, [userLocation]);
+
   const handleSelect = (place) => {
     setQuery("");
     setSuggestions([]);
     onAddPlace({
       title: place.title,
-      coordinates: place.coordinates, // [lon, lat]
+      coordinates: place.coordinates,
       address: place.address,
       placeId: place.placeId,
     });
@@ -80,53 +108,9 @@ export default function TripPlanner({
   };
 
   return (
-    <div className="w-[70%] max-w-2xl ml-[60px] mt-[100px] text-white relative z-[9999] space-y-8">
-      {/* Search */}
-      <div className="relative">
-        <input
-          type="text"
-          placeholder="SEARCH NEARBY PLACES..."
-          value={query}
-          onChange={(e) => {
-            const value = e.target.value;
-            setQuery(value);
-            fetchSuggestions(value);
-          }}
-          className="w-full bg-transparent text-white placeholder-white/60
-                     border-0 border-b border-white/40 pb-3
-                     focus:border-white focus:outline-none focus:ring-0"
-        />
-
-        {loading && (
-          <p className="absolute right-0 top-0 translate-y-[-1.4rem] md:translate-y-0 md:right-2 md:top-2 text-white/50 text-sm animate-pulse">
-            Searching...
-          </p>
-        )}
-
-        {suggestions.length > 0 && (
-          <ul
-            className="absolute left-0 right-0 mt-3 bg-black/90 text-white
-                       border border-white/30 rounded-xl shadow-2xl backdrop-blur-xl
-                       overflow-hidden z-[99999] animate-fadeIn"
-          >
-            {suggestions.map((s, i) => (
-              <li
-                key={`${s.placeId ?? s.title}-${i}`}
-                onClick={() => handleSelect(s)}
-                className="p-3 hover:bg-white/20 cursor-pointer transition-colors"
-              >
-                <span className="font-medium">{s.title}</span>
-                {s.address && (
-                  <p className="text-xs text-white/60 truncate">{s.address}</p>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {/* Trip Plan List */}
-      <div className="bg-black border border-white/30 rounded-xl p-4 backdrop-blur-md shadow-md">
+    <div className="w-full flex flex-col md:flex-row items-start gap-6 mt-[80px] px-6 text-white relative z-[9999]">
+      {/* 🗺️ Left: Trip Plan List */}
+      <div className="flex-1 bg-black/70 border border-white/30 rounded-xl p-4 backdrop-blur-md shadow-md max-w-2xl">
         <h2 className="text-lg font-semibold mb-3">Your Trip Plan</h2>
 
         {places.length === 0 ? (
@@ -147,8 +131,6 @@ export default function TripPlanner({
                 <button
                   onClick={() => handleRemove(index)}
                   className="text-red-400 hover:text-red-300 text-sm font-medium"
-                  aria-label={`Remove ${place.title}`}
-                  title="Remove"
                 >
                   ❌
                 </button>
@@ -156,6 +138,70 @@ export default function TripPlanner({
             ))}
           </ul>
         )}
+      </div>
+
+      {/* 🧭 Right: Add Stops & Events */}
+      <div className="flex flex-col gap-6 w-full md:w-[350px]">
+        {/* Add Stops Box */}
+        <div className="bg-black/70 border border-white/30 rounded-xl p-4 backdrop-blur-md shadow-md">
+          <h2 className="text-lg font-semibold mb-4">Add Stops</h2>
+
+          <input
+            type="text"
+            placeholder="Search for a place..."
+            value={query}
+            onChange={(e) => {
+              const value = e.target.value;
+              setQuery(value);
+              fetchSuggestions(value);
+            }}
+            className="w-full bg-transparent text-white placeholder-white/60
+                       border-0 border-b border-white/40 pb-2
+                       focus:border-white focus:outline-none focus:ring-0 mb-3"
+          />
+
+          {loading && (
+            <p className="text-xs text-white/60 animate-pulse mb-2">
+              Searching...
+            </p>
+          )}
+
+          {suggestions.length > 0 && (
+            <ul className="bg-black/90 text-white border border-white/30 rounded-xl
+                           shadow-2xl backdrop-blur-xl overflow-hidden animate-fadeIn">
+              {suggestions.map((s, i) => (
+                <li
+                  key={`${s.placeId ?? s.title}-${i}`}
+                  onClick={() => handleSelect(s)}
+                  className="p-2 hover:bg-white/20 cursor-pointer transition-colors"
+                >
+                  <span className="font-medium text-sm">{s.title}</span>
+                  <p className="text-xs text-white/60 truncate">{s.address}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* ✨ Recommended Events Box */}
+        <div className="bg-black/70 border border-white/30 rounded-xl p-4 backdrop-blur-md shadow-md flex-1 h-[300px]">
+          <h2 className="text-lg font-semibold mb-3">Nearby Attractions</h2>
+          {recommendations.length === 0 ? (
+            <p className="text-white/60 text-sm">Loading nearby spots...</p>
+          ) : (
+            <div className="overflow-y-auto max-h-[230px] pr-1 space-y-2">
+              {recommendations.map((rec, i) => (
+                <div
+                  key={`${rec.placeId}-${i}`}
+                  className="p-2 bg-white/5 rounded-lg border border-white/10"
+                >
+                  <p className="text-sm font-medium">{rec.title}</p>
+                  <p className="text-xs text-white/50">{rec.address}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

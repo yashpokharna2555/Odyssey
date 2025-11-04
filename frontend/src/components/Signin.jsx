@@ -46,6 +46,8 @@ const Signin = () => {
 
       if (token) {
         sessionStorage.setItem("access_token", token);
+        // Store user email for later use
+        sessionStorage.setItem("user_email", email);
         window.dispatchEvent(new Event("authStatusChange"));
         navigate("/");
       } else setError("Invalid response from server");
@@ -106,9 +108,7 @@ const Signin = () => {
     <div
       className="relative w-screen h-screen bg-black flex items-center justify-center overflow-hidden"
     >
-      {/* ✨ Overlay + Twinkling stars effect */}
-      <div className="absolute inset-0 bg-black/60"></div>
-      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/30"></div>
+      {/* ✨ Overlay removed - stars come from App.jsx */}
 
       {/* 🔹 Auth Box */}
       <div className="relative z-10 w-[90%] max-w-md p-10 rounded-[2rem] bg-transparent border border-white backdrop-blur-xl shadow-2xl">

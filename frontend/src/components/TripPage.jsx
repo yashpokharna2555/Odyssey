@@ -1,10 +1,29 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import TripMap from "./TripMap";
 import Arrow from "../assets/arrow.svg";
 
 const API_KEY = import.meta.env.VITE_AWS_MAPS_API_KEY;
 
+// Format minutes into hours and minutes
+const formatDuration = (minutes) => {
+  if (!minutes || typeof minutes !== "number" || minutes <= 0) {
+    return "0 minutes";
+  }
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  
+  if (hours === 0) {
+    return `${mins} ${mins === 1 ? "minute" : "minutes"}`;
+  }
+  if (mins === 0) {
+    return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+  }
+  return `${hours} ${hours === 1 ? "hour" : "hours"} ${mins} ${mins === 1 ? "minute" : "minutes"}`;
+};
+
 export default function TripPage() {
+  const navigate = useNavigate();
   const [places, setPlaces] = useState([]);
   const [startLocation, setStartLocation] = useState("");
   const [startLocationCoords, setStartLocationCoords] = useState(null);
@@ -26,8 +45,44 @@ export default function TripPage() {
 
   const [events, setEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(false);
+  
+  const [activeTab, setActiveTab] = useState("today");
 
   const [userLoc, setUserLoc] = useState(null);
+  
+  const [autoSuggestions, setAutoSuggestions] = useState([]);
+  const [autoSuggestionsLoading, setAutoSuggestionsLoading] = useState(false);
+  const [suggestionSource, setSuggestionSource] = useState(null);
+
+  // 🗓️ Handle date tab selection
+  const handleTabSelect = (tab) => {
+    setActiveTab(tab);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const dayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
+    const daysUntilSaturday = 6 - dayOfWeek;
+    const saturday = new Date(today);
+    saturday.setDate(today.getDate() + daysUntilSaturday);
+    
+    const formatDate = (date) => date.toISOString().split('T')[0];
+    
+    switch(tab) {
+      case "today":
+        setStartDate(formatDate(today));
+        setEndDate(formatDate(today));
+        break;
+      case "tomorrow":
+        setStartDate(formatDate(tomorrow));
+        setEndDate(formatDate(tomorrow));
+        break;
+      case "weekend":
+        setStartDate(formatDate(saturday));
+        setEndDate(formatDate(saturday));
+        break;
+    }
+  };
 
   // 🧭 Get user location
   useEffect(() => {
@@ -106,6 +161,56 @@ export default function TripPage() {
   };
   const removeStop = (idx) => setPlaces((p) => p.filter((_, i) => i !== idx));
 
+  // 💡 Fetch auto smart suggestions based on selected location
+  const fetchAutoSuggestions = async (biasPosition = null, sourceName = null) => {
+    setAutoSuggestionsLoading(true);
+    try {
+      const position = biasPosition || userLoc || [-122.009, 37.3349];
+      
+      // Fetch popular places based on provided location
+      const res = await fetch(`/places/v2/search-text?key=${API_KEY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          QueryText: "popular attractions, restaurants, landmarks, museums, parks",
+          BiasPosition: position,
+          MaxResults: 8,
+        }),
+      });
+      
+      const data = await res.json();
+      const results =
+        data.ResultItems?.map((r) => ({
+          title: r.Title,
+          placeId: r.PlaceId,
+          address: r.Address?.Label || "",
+          coordinates: r.Position,
+        })) || [];
+      
+      setAutoSuggestions(results);
+      setSuggestionSource(sourceName);
+    } catch (err) {
+      console.error("Error fetching auto suggestions:", err);
+      setAutoSuggestions([]);
+    } finally {
+      setAutoSuggestionsLoading(false);
+    }
+  };
+
+  // Update suggestions when start location changes
+  useEffect(() => {
+    if (startLocationCoords) {
+      fetchAutoSuggestions(startLocationCoords, startLocation);
+    }
+  }, [startLocationCoords, startLocation]);
+
+  // Initial load with user location
+  useEffect(() => {
+    if (userLoc && !startLocationCoords) {
+      fetchAutoSuggestions(null, "Your Location");
+    }
+  }, [userLoc]);
+
   const initializeTrip = async () => {
     if (!startLocation || places.length === 0) {
       alert("Add a start location and at least one stop.");
@@ -115,13 +220,13 @@ export default function TripPage() {
     try {
       const stops = places.map((p) => [p.title, p.placeId]);
       const token = sessionStorage.getItem("access_token");
-      const toISO = (d, t) =>
-        d && t ? new Date(`${d}T${t}`).toISOString() : new Date().toISOString();
+      const toISO = (d) =>
+        d ? new Date(`${d}T09:00:00`).toISOString() : new Date().toISOString();
       const body = {
         startLocation,
         ...(startLocationCoords && { startLocationCoords }),
-        startTime: toISO(startDate, startTime),
-        endTime: toISO(endDate, endTime),
+        startTime: toISO(startDate),
+        endTime: toISO(endDate),
         mode,
         stops,
       };
@@ -136,6 +241,31 @@ export default function TripPage() {
       });
       const data = await res.json();
       setTripResponse(res.ok ? data : null);
+      
+      // If trip initialized successfully, save it to the API
+      if (res.ok && data.tripId) {
+        try {
+          const email = "user@example.com"; // TODO: Get actual user email
+          
+          const saveData = {
+            tripId: data.tripId,
+            email: email,
+            userId: "test-user-123" // TODO: Get actual user ID
+          };
+
+          await fetch("/api/prod/trip/save", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`,
+            },
+            body: JSON.stringify(saveData)
+          });
+        } catch (saveError) {
+          console.error("Error saving trip to API:", saveError);
+          // Don't fail the whole operation if save fails
+        }
+      }
     } catch {
       setTripResponse(null);
     } finally {
@@ -296,21 +426,45 @@ export default function TripPage() {
                       Trip Details
                     </h2>
 
+                    {/* Date Tabs */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleTabSelect("today")}
+                        className={`flex-1 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                          activeTab === "today"
+                            ? "bg-white text-black"
+                            : "bg-white/10 text-white border border-white/30"
+                        }`}
+                      >
+                        Today
+                      </button>
+                      <button
+                        onClick={() => handleTabSelect("tomorrow")}
+                        className={`flex-1 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                          activeTab === "tomorrow"
+                            ? "bg-white text-black"
+                            : "bg-white/10 text-white border border-white/30"
+                        }`}
+                      >
+                        Tomorrow
+                      </button>
+                      <button
+                        onClick={() => handleTabSelect("weekend")}
+                        className={`flex-1 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                          activeTab === "weekend"
+                            ? "bg-white text-black"
+                            : "bg-white/10 text-white border border-white/30"
+                        }`}
+                      >
+                        Weekend
+                      </button>
+                    </div>
+
                     <Field label="Start Date">
                       <input
                         type="date"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full bg-white/10 text-white border border-white/30 rounded-lg px-4 py-2.5 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30 hover:bg-white/15 transition-all"
-                      />
-                    </Field>
-
-                    <Field label="Start Time (24h)">
-                      <input
-                        type="time"
-                        value={startTime}
-                        onChange={(e) => setStartTime(e.target.value)}
-                        step="900"
                         className="w-full bg-white/10 text-white border border-white/30 rounded-lg px-4 py-2.5 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30 hover:bg-white/15 transition-all"
                       />
                     </Field>
@@ -324,14 +478,16 @@ export default function TripPage() {
                       />
                     </Field>
 
-                    <Field label="End Time (24h)">
-                      <input
-                        type="time"
-                        value={endTime}
-                        onChange={(e) => setEndTime(e.target.value)}
-                        step="900"
-                        className="w-full bg-white/10 text-white border border-white/30 rounded-lg px-4 py-2.5 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30 hover:bg-white/15 transition-all"
-                      />
+                    <Field label="Start Time">
+                      <div className="w-full bg-white/10 text-white border border-white/30 rounded-lg px-4 py-2.5">
+                        09:00 (default)
+                      </div>
+                    </Field>
+
+                    <Field label="End Time">
+                      <div className="w-full bg-white/10 text-white border border-white/30 rounded-lg px-4 py-2.5">
+                        18:00 (default)
+                      </div>
                     </Field>
 
                     <Field label="Travel Mode">
@@ -349,7 +505,7 @@ export default function TripPage() {
                     <div className="flex justify-end">
                       <button
                         onClick={initializeTrip}
-                        disabled={loading || !startQuery || places.length === 0}
+                        disabled={loading || !startLocation || places.length === 0}
                         className="rounded-full bg-white text-black px-6 py-2 font-semibold hover:bg-white/90 disabled:opacity-50"
                       >
                         {loading ? "Initializing…" : "Initialize Trip"}
@@ -448,20 +604,74 @@ export default function TripPage() {
                         Your Stops ({places.length})
                       </label>
                       {places.map((p, i) => (
-                        <span
-                          key={`${p.placeId}-${i}`}
-                          className="inline-flex items-center gap-2 px-3 py-1 mr-2 mb-2 rounded-full bg-white/10 border border-white/20 text-sm"
-                        >
-                          #{i + 1} {p.title}
+                        <div key={`${p.placeId}-${i}`} className="inline-flex items-center gap-2 mr-2 mb-2">
+                          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-sm">
+                            #{i + 1} {p.title}
+                          </span>
+                          <button
+                            className="text-xs text-white/70 hover:text-white bg-white/5 px-2 py-1 rounded border border-white/20 hover:bg-white/10"
+                            onClick={() => fetchAutoSuggestions(p.coordinates, p.title)}
+                            title="Get suggestions nearby"
+                          >
+                            💡
+                          </button>
                           <button
                             className="text-white/70 hover:text-white"
                             onClick={() => removeStop(i)}
                           >
                             ✕
                           </button>
-                        </span>
+                        </div>
                       ))}
                     </div>
+
+                    {/* Auto Smart Suggestions */}
+                    <div>
+                      <label className="text-[11px] uppercase tracking-wide text-white/70 mb-2 block">
+                        💡 Popular Places Nearby
+                        {suggestionSource && (
+                          <span className="lowercase font-normal"> (near {suggestionSource})</span>
+                        )}
+                      </label>
+                      {autoSuggestionsLoading ? (
+                        <div className="text-xs text-white/50 py-3">Loading suggestions...</div>
+                      ) : autoSuggestions.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {autoSuggestions.map((suggestion) => {
+                            const isAlreadyAdded = places.some(p => p.placeId === suggestion.placeId);
+                            return (
+                              <button
+                                key={suggestion.placeId}
+                                onClick={() => !isAlreadyAdded && addStop(suggestion)}
+                                className={`px-3 py-1.5 rounded-full border text-xs transition-all ${
+                                  isAlreadyAdded
+                                    ? 'bg-white/5 border-white/10 text-white/40 cursor-not-allowed'
+                                    : 'bg-white/5 border-white/20 text-white hover:bg-white/10 hover:border-white/40'
+                                }`}
+                                disabled={isAlreadyAdded}
+                              >
+                                + {suggestion.title}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {/* Events Box */}
+                    <div
+                      onClick={() => navigate("/events")}
+                      className="mt-3 rounded-2xl border border-white/15 bg-black/70 backdrop-blur-md shadow-xl p-6 cursor-pointer hover:bg-black/90 transition-all relative"
+                    >
+                      <h3 className="text-[48px] font-semibold text-white mb-2">
+                        Events
+                      </h3>
+                      <img
+                        src={Arrow}
+                        alt=""
+                        className="absolute bottom-6 right-6 w-6 h-6 rotate-45"
+        />
+      </div>
                   </div>
                 </div>
               </div>
@@ -470,8 +680,8 @@ export default function TripPage() {
             {/* ✅ TRIP ITINERARY BELOW */}
             {tripResponse?.itinerary && (
               <div className="rounded-2xl border border-white/15 bg-black/70 backdrop-blur-md shadow-xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-2xl font-semibold text-white">
+                <div className="mb-4">
+                  <h3 className="text-2xl font-semibold text-white mb-4">
                     Trip Itinerary
                   </h3>
                   <div className="flex gap-6 text-sm text-white/70">
@@ -480,14 +690,6 @@ export default function TripPage() {
                         <span className="text-white/60">Trip ID:</span>{" "}
                         <span className="text-white font-mono">
                           {tripResponse.tripId}
-                        </span>
-                      </div>
-                    )}
-                    {typeof tripResponse.tripDurationMinutes === "number" && (
-                      <div>
-                        <span className="text-white/60">Duration:</span>{" "}
-                        <span className="text-white">
-                          {tripResponse.tripDurationMinutes} minutes
                         </span>
                       </div>
                     )}
@@ -526,91 +728,63 @@ export default function TripPage() {
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
 
-            {/* 🎫 EVENTS SECTION */}
-            {(events.length > 0 || eventsLoading) && (
-              <div className="rounded-2xl border border-white/15 bg-black/70 backdrop-blur-md shadow-xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-2xl font-semibold text-white">
-                    Events in San Francisco
-                  </h3>
-                  {eventsLoading && (
-                    <span className="text-sm text-white/70">Loading events...</span>
-                  )}
-                </div>
-
-                {eventsLoading && events.length === 0 ? (
-                  <div className="text-center py-8 text-white/70">
-                    <p>Loading events for San Francisco...</p>
-                  </div>
-                ) : events.length === 0 ? (
-                  <div className="text-center py-8 text-white/70">
-                    <p>No events found for San Francisco</p>
-                    <p className="text-xs mt-2">Add VITE_SERPAPI_KEY to your .env file</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
-                    {events.slice(0, 10).map((event, idx) => (
-                    <div
-                      key={`${event.event_id || event.title || idx}`}
-                      className="bg-black/40 border border-white/20 rounded-lg overflow-hidden hover:bg-black/60 transition-all"
-                    >
-                      {/* Event Image */}
-                      {event.thumbnail && (
-                        <div className="w-full h-40 overflow-hidden">
-                          <img
-                            src={event.thumbnail}
-                            alt={event.title || "Event"}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.style.display = "none";
-                            }}
-        />
-      </div>
-                      )}
-                      
-                      {/* Event Details */}
-                      <div className="p-4">
-                        <h4 className="text-base font-semibold text-white mb-2">
-                          {event.title || "Event"}
-                        </h4>
+                {/* Save Button at Bottom */}
+                <div className="mt-6 flex justify-end">
+                  <button
+                    onClick={async () => {
+                      console.log("Save itinerary button clicked", { tripResponse });
+                      try {
+                        const token = sessionStorage.getItem("access_token");
+                        const email = sessionStorage.getItem("user_email") || "123@test.com";
                         
-                        {event.date?.when && (
-                          <p className="text-xs text-white/70 mb-2">
-                            📅 {event.date.when}
-                          </p>
-                        )}
-                        
-                        {event.address && (
-                          <p className="text-xs text-white/60 mb-3 truncate">
-                            📍 {Array.isArray(event.address) ? event.address[0] : event.address}
-                          </p>
-                        )}
+                        console.log("Attempting to save trip to API...");
+                        // Save to API
+                        const saveData = {
+                          tripId: tripResponse.tripId,
+                          email: email,
+                          userId: "test-user-123" // TODO: Get actual user ID
+                        };
 
-                        {/* Buttons */}
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => addEventToItinerary(event)}
-                            className="flex-1 flex items-center justify-start gap-2 rounded-full bg-black border-2 border-white text-white px-4 py-2 text-sm font-semibold hover:bg-white hover:text-black transition-all"
-                          >
-                            <span className="text-xl">+</span>
-                            Add to Itinerary
-                          </button>
-                          <button
-                            onClick={() => bookTickets(event)}
-                            className="flex-1 flex items-center justify-start gap-2 rounded-full bg-black border-2 border-white text-white px-4 py-2 text-sm font-semibold hover:bg-white hover:text-black transition-all"
-                          >
-                            <img src={Arrow} alt="" className="w-4 h-4 rotate-45" />
-                            Book Tickets
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                        console.log("Sending save request:", saveData);
+          const response = await fetch("/api/prod/trip/save", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify(saveData)
+          });
+
+                        console.log("Response status:", response.status);
+                        if (response.ok) {
+                          console.log("Trip saved successfully to API");
+                          // Also save to localStorage
+                          const itineraryData = {
+                            itinerary: tripResponse.itinerary,
+                            tripId: tripResponse.tripId,
+                            duration: tripResponse.tripDurationMinutes,
+                            savedAt: new Date().toISOString(),
+                          };
+                          localStorage.setItem("savedItinerary", JSON.stringify(itineraryData));
+                          console.log("Itinerary saved to localStorage:", itineraryData);
+                          alert("Itinerary saved to Memories!");
+                        } else {
+                          const error = await response.json();
+                          console.error("Failed to save trip:", error);
+                          alert(`Failed to save: ${error.message || "Unknown error"}`);
+                        }
+                      } catch (error) {
+                        console.error("Error saving trip:", error);
+                        alert("Failed to save trip. Please try again.");
+                      }
+                    }}
+                    className="flex items-center gap-2 rounded-full bg-white text-black px-6 py-2 text-sm font-semibold hover:bg-white/90 transition-all"
+                  >
+                    <span className="text-xl">+</span>
+                    Save
+                  </button>
                 </div>
-                )}
               </div>
             )}
           </div>

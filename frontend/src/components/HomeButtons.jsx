@@ -30,7 +30,7 @@ const Button = ({ text, onClick }) => {
         src={Arrow}
         alt=""
         className="w-4 h-4 rotate-45"
-        animate={{ x: [0, 6, 0, -6, 0], y: [0, -6, 0, 6, 0] }}
+        animate={{ x: [0, 12, 0,], y: [0, -12, 0,] }}
         transition={{ duration: 2.5, ease: "easeInOut", repeat: Infinity }}
       />
     </button>

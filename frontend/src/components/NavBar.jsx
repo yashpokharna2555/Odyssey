@@ -47,8 +47,9 @@ export default function NavBar() {
         <nav className="flex items-center gap-5 text-[12px] font-light tracking-[0.18em] text-white uppercase">
           <Link to="/" className="text-white no-underline hover:text-gray-300 transition-colors">Home</Link>
           <Link to="/trip" className="text-white no-underline hover:text-gray-300 transition-colors">Trip</Link>
+          <Link to="/memories" className="text-white no-underline hover:text-gray-300 transition-colors">Memories</Link>
           <Link to="/about" className="text-white no-underline hover:text-gray-300 transition-colors">About</Link>
-          <span>Help</span>
+          <Link to="/help" className="text-white no-underline hover:text-gray-300 transition-colors">Help</Link>
           {isLoggedIn ? (
             <button
               onClick={handleSignOut}

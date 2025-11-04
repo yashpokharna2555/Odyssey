@@ -9,9 +9,19 @@ import Colosseum from "../assets/Colosseum.png";
 import Giza from "../assets/Giza.png";
 import Greatwall from "../assets/Greatwall.png";
 import StatueOfLiberty from "../assets/StatueOfLiberty.png";
+import Chinatown from "../assets/Chinatown.png";
+import Bakery from "../assets/Bakery.png";
+import alcatraz from "../assets/alcatraz.png";
+import Mountfuji from "../assets/MOuntfuji.png";
+import EiffelTower from "../assets/EiffelTower.png";
+import UnionSquare from "../assets/UnionSquare.png";
+import Tahoe from "../assets/Tahoe.png";
+import Stamford from "../assets/StamfordBridge.png";
+import OldTrafford from "../assets/OldTrafford.png";
+import LA from "../assets/LA.png";
 
 const AlternatingSweepBox = ({ delay = 0 }) => {
-  const IMAGES = [SF_GGB, Taj, Christ, Colosseum, Giza, Greatwall, StatueOfLiberty];
+  const IMAGES = [SF_GGB, Taj, Christ, Colosseum, Giza, Greatwall, StatueOfLiberty, Chinatown, Bakery, alcatraz, Mountfuji, EiffelTower, UnionSquare, Tahoe, Stamford, OldTrafford, LA];
   const [image, setImage] = useState(() => IMAGES[Math.floor(Math.random() * IMAGES.length)]);
   const controls = useAnimationControls();
 
